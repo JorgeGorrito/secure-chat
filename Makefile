@@ -1,8 +1,8 @@
 client: client.c
 	gcc client.c -o client
 	
-server: server.c libclientlib.a
-	gcc server.c -o server -L. -lclientlib
+server: server.c libclientlib.a libmessage.a
+	gcc server.c -o server -L. -lclientlib -lmessage
 
 libclientlib.a: clientlib.o
 	ar rcs libclientlib.a clientlib.o
@@ -12,3 +12,12 @@ clientlib.o: clientlib.c clientlib.h
 
 clientlib: clientlib.c clientlib.h
 	gcc clientlib.c -o clientlib
+
+libmessage.a: message.o
+	ar rcs libmessage.a message.o
+
+message.o:	message.h message.c
+	gcc -c message.c
+
+message: message.h message.c
+	gcc message.c -o message
