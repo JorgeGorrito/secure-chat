@@ -1,5 +1,13 @@
 #include "message.h"
 
+void setMessage( struct Message* message, int kind, char message[BUFFER_SIZE], char from[USERNAME_SIZE], char to[USERNAME_SIZE])
+{
+    message->kind = kind;
+    strcpy(message->message, message);
+    strcpy(message->from, from);
+    strcpy(message->to, to);
+}
+
 void showMessages(struct QueueMessage* messages)
 {
     struct NodeMessage* temp = messages->head;

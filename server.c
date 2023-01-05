@@ -11,7 +11,8 @@
 #include "message.h"
 
 /*Global Variables*/
-struct Clients clients;
+struct Clients clients = {0, NULL};
+struct QueueMessage messages = {NULL, NULL};
 /*Specific task functions*/
 
 /*Server connection functions*/
@@ -114,9 +115,9 @@ int main(int argc, char *argv[])
         service_socket = accept(listen_socket, &adr, &lgadr);
 
         if(read(service_socket, buffer_username, USERNAME_SIZE)==-1)
+        {
             printf("Username hasn't been received\n");
-        else
-            printf("Username %s has been received\n", buffer_username);
+        }
         
         if (vectExist(&clients, buffer_username))
         {
