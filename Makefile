@@ -1,5 +1,5 @@
-client: client.c
-	gcc client.c -o client
+client: client.c libmessage.a
+	gcc client.c -o client -L. -lmessage
 	
 server: server.c libclientlib.a libmessage.a
 	gcc server.c -o server -L. -lclientlib -lmessage

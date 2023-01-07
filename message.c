@@ -1,9 +1,9 @@
 #include "message.h"
 
-void setMessage( struct Message* message, int kind, char message[BUFFER_SIZE], char from[USERNAME_SIZE], char to[USERNAME_SIZE])
+void setMessage( struct Message* message, int kind, char msg[BUFFER_SIZE], char from[USERNAME_SIZE], char to[USERNAME_SIZE])
 {
     message->kind = kind;
-    strcpy(message->message, message);
+    strcpy(message->message, msg);
     strcpy(message->from, from);
     strcpy(message->to, to);
 }
@@ -69,4 +69,9 @@ struct Message dropMessage(struct QueueMessage* messages)
 int isEmptyMessages(struct QueueMessage* messages)
 {
     return messages->head? 0 : 1;
+}
+
+void cleanMessage(struct Message* message)
+{  
+    setMessage(message, 0, "", "", "");
 }

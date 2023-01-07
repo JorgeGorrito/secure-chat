@@ -35,4 +35,5 @@ int vectEmpty(struct Clients clients);
 int vectExist(struct Clients* clients, char username[USERNAME_SIZE]);
 int vectFindSock(struct Clients* clients, char username[USERNAME_SIZE]);
 int vectInsert(struct Clients* clients, struct Client client);
+int vectDropClient(struct Clients* clients, int sock);
 void vectShow(struct Clients clients);

@@ -70,29 +70,29 @@ void vectShow(struct Clients clients)
     fprintf(stdout, "\n");
 }
 
-int vectDrop(struct Clients* clients, char username[USERNAME_SIZE])
+int vectDropClient(struct Clients* clients, int sock)
 {
-    struct NodoClient* aux = clients->head;
-    struct NodoClient* ant = NULL;
+    struct NodoClient* tempAnt = NULL;
+    struct NodoClient* temp = clients->head;
+    int sockMath = -1;
 
-    if (aux && !ant && (strcmp(aux->client.username, username)==0))
+    while(temp)
     {
-        clients->head = clients->head->next;
-        free(aux);
-        return 0;
-    }
-
-    while(aux)
-    {
-        ant = aux;
-        aux = aux->next;
-        if (strcmp(aux->client.username, username)==0)
+        if (temp->client.sock == sock)
         {
-            ant->next = aux->next;
-            free(aux);
+            if (!tempAnt)
+                clients->head=clients->head->next;
+            else
+                tempAnt->next = temp->next;
 
-            return 0;
+            
+            sockMath = temp->client.sock;
+            free(temp);
+            break;
         }
+        tempAnt = temp;
+        temp = temp->next;
     }
-    return -1;
+
+    return sockMath;
 }

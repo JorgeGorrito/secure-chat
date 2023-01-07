@@ -58,10 +58,15 @@ void spreadMessage(struct Message message)
 
     while(aux)
     {
-        printf("se envio mensaje a %d\n", aux->client.sock);
-        send(aux->client.sock,(char*)&message, sizeof(struct Message), 0);
+        send(aux->client.sock,&message, sizeof(struct Message), 0);
         aux = aux->next;
     }
+}
+
+void sendMessage(struct Message message)
+{
+    int sock = vectFindSock(&clients, message.to);
+    send(sock,(char*)&message, sizeof(struct Message), 0);
 }
 
 void* service(void* args)
@@ -72,8 +77,52 @@ void* service(void* args)
     client.sock = ((struct Client*)args)->sock;
     strcpy(client.username, ((struct Client*)args)->username);
 
+    struct Message message = {0, "", "", ""};
+    int bytes_received = 0;
+
     while(TRUE)
     {
+        cleanMessage(&message);
+        bytes_received = recv(client.sock, &message, sizeof(struct Message), 0);
+        
+        /*Checking error in received message*/
+        if(bytes_received == 0)
+        {
+            cleanMessage(&message);
+            strcpy(message.from, client.username);
+            char buffer[BUFFER_SIZE];
+            sprintf(buffer, "The user %s has been disconnected", client.username);
+            setMessage(&message, SPREAD_MESSAGE, buffer, "Server", "");
+            if(vectDropClient(&clients, client.sock) == client.sock)
+            {
+                printf("\nThe user %s was disconnected.\n", client.username);
+                printf("user online:");
+                vectShow(clients);
+            }
+            spreadMessage(message);
+            break;
+        }
+        else if(bytes_received == -1)
+        {
+            continue;
+        }
+
+        strcpy(message.from, client.username);
+        switch (message.kind)
+        {
+            case SPREAD_MESSAGE:
+            {
+                spreadMessage(message);
+                break;
+            }
+            case PRIVATE_MESSAGE:
+            {
+                sendMessage(message);
+                break;
+            }       
+            default:
+                break;
+        }
     }
 }
 
@@ -82,11 +131,10 @@ int main(int argc, char *argv[])
     int listen_socket, service_socket;
     struct sockaddr_in adr;
     int lgadr = sizeof(adr);
-    char buffer_username[USERNAME_SIZE];
     struct Client client;
     int port;
     pthread_t thread_id;
-    struct Message message;
+    struct Message message = {0, "", "", ""};
 
     if (argc!=2)
     {
@@ -114,26 +162,33 @@ int main(int argc, char *argv[])
         lgadr = sizeof(adr);
         service_socket = accept(listen_socket, &adr, &lgadr);
 
-        if(read(service_socket, buffer_username, USERNAME_SIZE)==-1)
+        if(recv(service_socket, &message, sizeof(struct Message), 0)==-1)
         {
             printf("Username hasn't been received\n");
+            setMessage(&message, DISCONNECTION_MESSAGE, "Username hasn't been received", "\0", "\0");
+            send(service_socket, (char*)&message, sizeof(struct Message), 0);
+            close(service_socket);
         }
-        
-        if (vectExist(&clients, buffer_username))
+
+        if (vectExist(&clients, message.from))
         {
-            printf("Username %s has already been registered\n", buffer_username);
+            char msg[BUFFER_SIZE];
+            printf("Username %s has already been registered\n", message.from);
+            sprintf(msg, "The username %s is already in use", message.from);
+            setMessage(&message, DISCONNECTION_MESSAGE, msg, "Server", "\0");
+            send(service_socket, (char*)&message, sizeof(struct Message), 0);
             close(service_socket);
             continue;
         }
 
-        strcpy(client.username, buffer_username);
+        strcpy(client.username, message.from);
         client.sock = service_socket;
         pthread_create(&thread_id, NULL, service, (void*)& client);
         client.thread_id = thread_id;
         vectInsert(&clients, client);
         
         strcpy(message.from, "Server");
-        sprintf(message.message, "The user %s is online.", client.username);
+        sprintf(message.message, "The user %s is online.\n", client.username);
         message.kind =  SPREAD_MESSAGE;
 
         spreadMessage(message);

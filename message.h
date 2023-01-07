@@ -29,8 +29,9 @@ struct QueueMessage
     struct NodeMessage *tail;
 };
 
-void setMessage( struct Message* message, int kind, char message[BUFFER_SIZE], char from[USERNAME_SIZE], char to[USERNAME_SIZE]);
+void setMessage( struct Message* message, int kind, char msg[BUFFER_SIZE], char from[USERNAME_SIZE], char to[USERNAME_SIZE]);
 void insertMessage(struct QueueMessage* messages, struct Message message);
 struct Message dropMessage(struct QueueMessage* messages);
 int isEmptyMessages(struct QueueMessage* messages);
 void showMessages(struct QueueMessage* messages);
+void cleanMessage(struct Message* message);

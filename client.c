@@ -7,38 +7,41 @@
 
 #include "message.h"
 //Constant
-#define SIZE 256
 #define USERNAME_SIZE 32
 #define TRUE 1
 
 void send_echo(int sock)
 {
+    struct Message message = {0, "", "", ""};
     while(TRUE)
     {
+        cleanMessage(&message);
         char sendline [BUFFER_SIZE] = {};
         fgets(sendline, BUFFER_SIZE, stdin);
-        write(sock, sendline, strlen(sendline));
+        setMessage(&message, SPREAD_MESSAGE, sendline, "", "");
+        send(sock, &message, sizeof(struct Message), 0);
     }
 }
 
 void receive_echo(int sock)
 {
-    char message[BUFFER_SIZE];
-
+    struct Message message = {0, "", "", ""};
     while(TRUE)
     {
-        recv(sock, message, sizeof(struct Message), 0);
-        printf("chat@%s> %s.\n", ((struct Message*)message)->from, ((struct Message*)message)->message);
+        cleanMessage(&message);
+        recv(sock, &message, sizeof(struct Message), 0);
+        printf("chat@%s> %s", message.from, message.message);
+        if (message.kind == DISCONNECTION_MESSAGE)
+            exit(0);
     }
 }
 
 int main(int argc, char* argv[])
 {
     int sock;
-    char com[SIZE];
     struct sockaddr_in adr;
     struct hostent *hp, *gethostbyname();
-
+    struct Message message = {0, "", "", ""};
     pthread_t pth_send, pth_receive;
 
     if(argc != 4)
@@ -70,13 +73,24 @@ int main(int argc, char* argv[])
         exit(4);
     }
 
-    char username[USERNAME_SIZE];
-    strcpy(username, argv[3]);
-    write(sock, username, USERNAME_SIZE);
+    setMessage(&message, CONNECTION_MESSAGE, "\0", argv[3], "\0");
+    send(sock, &message, sizeof(struct Message), 0);
+
+    recv(sock, &message, sizeof(struct Message), 0);
+    if (message.kind == DISCONNECTION_MESSAGE)
+    {
+        printf("%s.\n", message.message);
+        exit(0);
+    }
 
     printf("You have successfully connected\n");
     pthread_create(&pth_send, NULL, (void*)&send_echo, (void*)sock);
     receive_echo(sock);
 
     return 0;
+}
+
+struct NodoClient* vectDrop(struct Clients* clients, int sock)
+{
+    struct NodoClient* temp; 
 }
