@@ -56,26 +56,27 @@ int createSocket(int *port, int type)
 void spreadMessage(struct Message* message)
 {
     struct NodoClient* aux = clients.head;
-
+    char bufferMessage[sizeof(struct Message)] = {};
+    packMessage(message, bufferMessage);
     while(aux)
     {
-        send(aux->client.sock, message, sizeof(struct Message), 0);
+        send(aux->client.sock, bufferMessage, sizeof(struct Message), 0);
         aux = aux->next;
     }
 }
 
-void sendMessage(struct Message message)
+void sendMessage(struct Message* message)
 {
-    int sock = vectFindSock(&clients, message.to);
-    send(sock,(char*)&message, sizeof(struct Message), 0);
+    int sock = vectFindSock(&clients, message->to);
+    char bufferMessage[sizeof(struct Message)] = {};
+    packMessage(message, bufferMessage);
+    send(sock, bufferMessage, sizeof(struct Message), 0);
 }
 
 void* service(void* args)
 {
     struct Client client = {};
     memcpy(&client, (struct Client*)args, sizeof(struct Client));
-
-    printf("%d %s %d \n%s\n", client.sock, client.username, client.thread_id, ((struct Client*)args)->public_key);
     struct Message message = {0, "", "", ""};
     int bytes_received = 0;
 
@@ -116,7 +117,7 @@ void* service(void* args)
             }
             case PRIVATE_MESSAGE:
             {
-                sendMessage(message);
+                sendMessage(&message);
                 break;
             }       
             default:
@@ -185,21 +186,19 @@ int main(int argc, char *argv[])
             close(service_socket);
             continue;
         }
-        
-        //setClient(&client, &thread_id, service_socket, message.from, message.message);
-        printf("usario: %s\nmensaje: %s\ntipo: %d\n\n", message.from, message.message, message.kind );
-        //pthread_create(&thread_id, NULL, service, (void*)&client);
-        continue;
+
+        setClient(&client, &thread_id, service_socket, message.from, message.message);
+        pthread_create(&thread_id, NULL, service, (void*)&client);
         vectInsert(&clients, &client);
-        
+
         cleanMessage(&message);
         sprintf(message.message, "The user %s is online.\n", client.username);
-        //setMessage(&message, SPREAD_MESSAGE, message.message, "Server", "");
-        //spreadMessage(&message);
+        setMessage(&message, SPREAD_MESSAGE, message.message, "Server", "");
+        spreadMessage(&message);
         
-        //cleanMessage(&message);
-        //setMessage(&message, CONNECTION_MESSAGE, "you have successfully connected", "Server", "" );
-        //send(service_socket, &message, sizeof(struct Message), 0);
+        cleanMessage(&message);
+        setMessage(&message, CONNECTION_MESSAGE, "you have successfully connected", "Server", "" );
+        send(service_socket, &message, sizeof(struct Message), 0);
     } 
     return 0;
 }

@@ -50,13 +50,11 @@ int vectInsert(struct Clients* clients, struct Client* client)
         
         aux->next = (struct NodoClient*)malloc(sizeof(struct NodoClient)); 
         aux = aux->next;
-        //aux->client = client;
         memcpy(&aux->client, client, sizeof(struct Client));
     }
     else
     {
         clients->head = (struct NodoClient*)malloc(sizeof(struct NodoClient)); 
-        //clients->head->client = client;
         memcpy(&clients->head->client, client, sizeof(struct Client));
     }
 }
@@ -103,11 +101,11 @@ void setClient(struct Client* client, pthread_t* thread_id, int sock, char usern
 {
     client->sock = sock;
     client->thread_id = thread_id;
-    strcpy(client->username, username);
-    strcpy(client->public_key, public_key);
+    strncpy(client->username, username, USERNAME_SIZE);
+    strncpy(client->public_key, public_key, RSA_SIZE);
 }
 
 void cleanClient(struct Client* client)
 {
-    setClient(client, NULL, -1, "", "");
+    setClient(client, NULL, 0, "", "");
 }

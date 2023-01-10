@@ -2,4 +2,4 @@
 #define TRUE 1
 #define FALSE 0
 #define USERNAME_SIZE 32
-#define RSA_SIZE 128
+#define RSA_SIZE 251

@@ -15,43 +15,39 @@
 RSA *pair_keys = NULL;
 BIO *bio = NULL;
 
-void send_echo(int sock)
+void sendMessage(int sock)
 {
     struct Message message = {0, "", "", ""};
+    char bufferMessage[sizeof(struct Message)] = {};
+    char sendline[BUFFER_SIZE];
     while(TRUE)
     {
         cleanMessage(&message);
-        char sendline [BUFFER_SIZE] = {};
         fgets(sendline, BUFFER_SIZE, stdin);
-        
         setMessage(&message, SPREAD_MESSAGE, sendline, "", ""); 
-        send(sock, &message, sizeof(struct Message), 0);
+        packMessage(&message, bufferMessage);
+        send(sock, bufferMessage, sizeof(struct Message), 0);
     }
 }
 
-void receive_echo(int sock)
+void receiveMessage(int sock)
 {
     struct Message message = {0, "", "", ""};
+    char bufferMessage[sizeof(struct Message)] = {};
     while(TRUE)
     {
         cleanMessage(&message);
-        if (recv(sock, &message, sizeof(struct Message), 0) == 0)
+        if (recv(sock, bufferMessage, sizeof(struct Message), 0) == 0)
         {
             printf("Client> The server is off.\n");
             exit(0);
         }
-
+        
+        unpackMessage(bufferMessage, &message);
         printf("chat@%s> %s", message.from, message.message);
         if (message.kind == DISCONNECTION_MESSAGE)
             exit(0);
     }
-}
-
-void printChar(char* str, int len)
-{
-    for (int i=0; i<len; i++)
-        printf("%c",str[i]);
-    printf("\n");
 }
 
 int main(int argc, char* argv[])
@@ -109,27 +105,23 @@ int main(int argc, char* argv[])
         exit(4);
     }
 
-    printf("tamanno de la key: %d\n", strlen(pub_key));
     setMessage(&message, CONNECTION_MESSAGE, pub_key, argv[3], "\0");
     packMessage(&message, bufferMessage);
-    printf("username: %s.\nkey: %s\n", message.from, ((struct Message*)bufferMessage)->message);
-    printf("size of Message: %d - %d\n", sizeof(struct Message),SOCK_STREAM);
     bytes_io = send(sock, bufferMessage, sizeof(struct Message), 0);
-    printf("Se enviaron %d bytes\n", bytes_io);
-    if (bytes_io==-1)
-        printf("Error al enviar datos\n");
-
-    recv(sock, &message, sizeof(struct Message), 0);
+    
+    recv(sock, bufferMessage, sizeof(struct Message), 0);
+    unpackMessage(bufferMessage, &message);
     if (message.kind == DISCONNECTION_MESSAGE)
     {
         printf("%s.\n", message.message);
         exit(0);
     }
 
-    recv(sock, &message, sizeof(struct Message), 0);
+    recv(sock, bufferMessage, sizeof(struct Message), 0);
+    unpackMessage(bufferMessage, &message);
     printf("chat@%s> %s.\n", message.from, message.message);
-    pthread_create(&pth_send, NULL, (void*)&send_echo, (void*)sock);
-    receive_echo(sock);
+    pthread_create(&pth_send, NULL, (void*)&sendMessage, (void*)sock);
+    receiveMessage(sock);
 
     return 0;
 }
