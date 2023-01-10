@@ -13,6 +13,7 @@
 /*Global Variables*/
 struct Clients clients = {0, NULL};
 struct QueueMessage messages = {NULL, NULL};
+
 /*Specific task functions*/
 
 /*Server connection functions*/
@@ -52,13 +53,13 @@ int createSocket(int *port, int type)
     return sockfd;
 }
 
-void spreadMessage(struct Message message)
+void spreadMessage(struct Message* message)
 {
     struct NodoClient* aux = clients.head;
 
     while(aux)
     {
-        send(aux->client.sock,&message, sizeof(struct Message), 0);
+        send(aux->client.sock, message, sizeof(struct Message), 0);
         aux = aux->next;
     }
 }
@@ -71,12 +72,10 @@ void sendMessage(struct Message message)
 
 void* service(void* args)
 {
-    /*Se inicializa con los datos del cliente*/
-    struct Client client;
-    client.thread_id = ((struct Client*)args)->thread_id;
-    client.sock = ((struct Client*)args)->sock;
-    strcpy(client.username, ((struct Client*)args)->username);
+    struct Client client = {};
+    memcpy(&client, (struct Client*)args, sizeof(struct Client));
 
+    printf("%d %s %d \n%s\n", client.sock, client.username, client.thread_id, ((struct Client*)args)->public_key);
     struct Message message = {0, "", "", ""};
     int bytes_received = 0;
 
@@ -97,9 +96,9 @@ void* service(void* args)
             {
                 printf("\nThe user %s was disconnected.\n", client.username);
                 printf("user online:");
-                vectShow(clients);
+                vectShow(&clients);
             }
-            spreadMessage(message);
+            spreadMessage(&message);
             break;
         }
         else if(bytes_received == -1)
@@ -112,7 +111,7 @@ void* service(void* args)
         {
             case SPREAD_MESSAGE:
             {
-                spreadMessage(message);
+                spreadMessage(&message);
                 break;
             }
             case PRIVATE_MESSAGE:
@@ -135,6 +134,8 @@ int main(int argc, char *argv[])
     int port;
     pthread_t thread_id;
     struct Message message = {0, "", "", ""};
+    char bufferMessage[sizeof(struct Message)];
+    int bytes_io = 0;
 
     if (argc!=2)
     {
@@ -157,12 +158,16 @@ int main(int argc, char *argv[])
     {   
         printf("\nWaiting for connections\n");
         printf("User online: ");
-        vectShow(clients);
+        vectShow(&clients);
 
         lgadr = sizeof(adr);
         service_socket = accept(listen_socket, &adr, &lgadr);
 
-        if(recv(service_socket, &message, sizeof(struct Message), 0)==-1)
+        cleanMessage(&message);
+        bytes_io = recv(service_socket, bufferMessage, sizeof(struct Message), 0);
+        unpackMessage(bufferMessage, &message);
+        
+        if( bytes_io == -1)
         {
             printf("Username hasn't been received\n");
             setMessage(&message, DISCONNECTION_MESSAGE, "Username hasn't been received", "\0", "\0");
@@ -180,18 +185,21 @@ int main(int argc, char *argv[])
             close(service_socket);
             continue;
         }
-
-        strcpy(client.username, message.from);
-        client.sock = service_socket;
-        pthread_create(&thread_id, NULL, service, (void*)& client);
-        client.thread_id = thread_id;
-        vectInsert(&clients, client);
         
-        strcpy(message.from, "Server");
+        //setClient(&client, &thread_id, service_socket, message.from, message.message);
+        printf("usario: %s\nmensaje: %s\ntipo: %d\n\n", message.from, message.message, message.kind );
+        //pthread_create(&thread_id, NULL, service, (void*)&client);
+        continue;
+        vectInsert(&clients, &client);
+        
+        cleanMessage(&message);
         sprintf(message.message, "The user %s is online.\n", client.username);
-        message.kind =  SPREAD_MESSAGE;
-
-        spreadMessage(message);
+        //setMessage(&message, SPREAD_MESSAGE, message.message, "Server", "");
+        //spreadMessage(&message);
+        
+        //cleanMessage(&message);
+        //setMessage(&message, CONNECTION_MESSAGE, "you have successfully connected", "Server", "" );
+        //send(service_socket, &message, sizeof(struct Message), 0);
     } 
     return 0;
 }

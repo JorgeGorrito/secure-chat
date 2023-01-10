@@ -4,11 +4,16 @@
 #include<sys/socket.h>
 #include<netdb.h>
 #include<pthread.h>
+//Library Third
+#include <openssl/bio.h>
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
 
 #include "message.h"
-//Constant
-#define USERNAME_SIZE 32
-#define TRUE 1
+
+/*Global variables*/
+RSA *pair_keys = NULL;
+BIO *bio = NULL;
 
 void send_echo(int sock)
 {
@@ -18,7 +23,8 @@ void send_echo(int sock)
         cleanMessage(&message);
         char sendline [BUFFER_SIZE] = {};
         fgets(sendline, BUFFER_SIZE, stdin);
-        setMessage(&message, SPREAD_MESSAGE, sendline, "", "");
+        
+        setMessage(&message, SPREAD_MESSAGE, sendline, "", ""); 
         send(sock, &message, sizeof(struct Message), 0);
     }
 }
@@ -29,11 +35,23 @@ void receive_echo(int sock)
     while(TRUE)
     {
         cleanMessage(&message);
-        recv(sock, &message, sizeof(struct Message), 0);
+        if (recv(sock, &message, sizeof(struct Message), 0) == 0)
+        {
+            printf("Client> The server is off.\n");
+            exit(0);
+        }
+
         printf("chat@%s> %s", message.from, message.message);
         if (message.kind == DISCONNECTION_MESSAGE)
             exit(0);
     }
+}
+
+void printChar(char* str, int len)
+{
+    for (int i=0; i<len; i++)
+        printf("%c",str[i]);
+    printf("\n");
 }
 
 int main(int argc, char* argv[])
@@ -41,8 +59,26 @@ int main(int argc, char* argv[])
     int sock;
     struct sockaddr_in adr;
     struct hostent *hp, *gethostbyname();
-    struct Message message = {0, "", "", ""};
+    struct Message message = {0, "","", ""};
+    char bufferMessage[sizeof(struct Message)];
     pthread_t pth_send, pth_receive;
+    int bytes_io = 0;
+
+    BIGNUM *bn = BN_new();
+    BUF_MEM *buf = NULL;
+
+    pair_keys = RSA_new();
+    bio = BIO_new(BIO_s_mem());
+
+    BN_set_word(bn, RSA_F4);
+    
+    RSA_generate_key_ex(pair_keys, 1024, bn, NULL);
+    PEM_write_bio_RSAPublicKey(bio, pair_keys);
+    BIO_get_mem_ptr(bio, &buf);
+
+    char pub_key[buf->length + 1];
+    memcpy(pub_key, buf->data, buf->length);
+    pub_key[buf->length] = '\0';
 
     if(argc != 4)
     {
@@ -73,8 +109,15 @@ int main(int argc, char* argv[])
         exit(4);
     }
 
-    setMessage(&message, CONNECTION_MESSAGE, "\0", argv[3], "\0");
-    send(sock, &message, sizeof(struct Message), 0);
+    printf("tamanno de la key: %d\n", strlen(pub_key));
+    setMessage(&message, CONNECTION_MESSAGE, pub_key, argv[3], "\0");
+    packMessage(&message, bufferMessage);
+    printf("username: %s.\nkey: %s\n", message.from, ((struct Message*)bufferMessage)->message);
+    printf("size of Message: %d - %d\n", sizeof(struct Message),SOCK_STREAM);
+    bytes_io = send(sock, bufferMessage, sizeof(struct Message), 0);
+    printf("Se enviaron %d bytes\n", bytes_io);
+    if (bytes_io==-1)
+        printf("Error al enviar datos\n");
 
     recv(sock, &message, sizeof(struct Message), 0);
     if (message.kind == DISCONNECTION_MESSAGE)
@@ -83,14 +126,10 @@ int main(int argc, char* argv[])
         exit(0);
     }
 
-    printf("You have successfully connected\n");
+    recv(sock, &message, sizeof(struct Message), 0);
+    printf("chat@%s> %s.\n", message.from, message.message);
     pthread_create(&pth_send, NULL, (void*)&send_echo, (void*)sock);
     receive_echo(sock);
 
     return 0;
-}
-
-struct NodoClient* vectDrop(struct Clients* clients, int sock)
-{
-    struct NodoClient* temp; 
 }

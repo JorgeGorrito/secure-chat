@@ -8,13 +8,14 @@
 #define CONNECTION_MESSAGE 3
 #define DISCONNECTION_MESSAGE 4
 #define ECHO_MESSAGE 5
+#define PKEY_MESSAGE 6
 
-struct Message
+struct __attribute__((packed)) Message
 {
-    int kind;
     char from[USERNAME_SIZE];
     char to[USERNAME_SIZE];
     char message[BUFFER_SIZE];
+    int kind;
 };
 
 struct NodeMessage
@@ -35,3 +36,5 @@ struct Message dropMessage(struct QueueMessage* messages);
 int isEmptyMessages(struct QueueMessage* messages);
 void showMessages(struct QueueMessage* messages);
 void cleanMessage(struct Message* message);
+void packMessage(struct Message* message, char* buffer);
+void unpackMessage(char* buffer, struct Message* message);

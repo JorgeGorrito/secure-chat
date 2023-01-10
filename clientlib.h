@@ -8,13 +8,13 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
-#include<pthread.h>
 
 #include "chat_config.h"
 
 struct Client
 {
-    pthread_t thread_id;
+    pthread_t* thread_id;
+    char public_key[RSA_SIZE];
     int sock;
     char username[USERNAME_SIZE];
 };
@@ -34,6 +34,8 @@ struct Clients
 int vectEmpty(struct Clients clients);
 int vectExist(struct Clients* clients, char username[USERNAME_SIZE]);
 int vectFindSock(struct Clients* clients, char username[USERNAME_SIZE]);
-int vectInsert(struct Clients* clients, struct Client client);
+int vectInsert(struct Clients* clients, struct Client* client);
 int vectDropClient(struct Clients* clients, int sock);
-void vectShow(struct Clients clients);
+void vectShow(struct Clients* clients);
+void setClient(struct Client* client, pthread_t* thread_id, int sock, char username[USERNAME_SIZE], char* public_key);
+void cleanClient(struct Client* client);

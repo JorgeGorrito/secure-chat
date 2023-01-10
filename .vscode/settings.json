@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "rsa.h": "c",
+        "message.h": "c",
+        "chat_config.h": "c",
+        "clientlib.h": "c"
+    }
+}

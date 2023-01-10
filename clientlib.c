@@ -39,7 +39,7 @@ int vectFindSock(struct Clients* clients, char username[USERNAME_SIZE])
     return -1;
 }
 
-int vectInsert(struct Clients* clients, struct Client client)
+int vectInsert(struct Clients* clients, struct Client* client)
 {
     clients->n_clients++;
     if(clients->head)
@@ -50,18 +50,20 @@ int vectInsert(struct Clients* clients, struct Client client)
         
         aux->next = (struct NodoClient*)malloc(sizeof(struct NodoClient)); 
         aux = aux->next;
-        aux->client = client;
+        //aux->client = client;
+        memcpy(&aux->client, client, sizeof(struct Client));
     }
     else
     {
         clients->head = (struct NodoClient*)malloc(sizeof(struct NodoClient)); 
-        clients->head->client = client;
+        //clients->head->client = client;
+        memcpy(&clients->head->client, client, sizeof(struct Client));
     }
 }
 
-void vectShow(struct Clients clients)
+void vectShow(struct Clients* clients)
 {
-    struct NodoClient* aux = clients.head;
+    struct NodoClient* aux = clients->head;
     while(aux)
     {
         fprintf(stdout, "%s, ", aux->client.username);
@@ -95,4 +97,17 @@ int vectDropClient(struct Clients* clients, int sock)
     }
 
     return sockMath;
+}
+
+void setClient(struct Client* client, pthread_t* thread_id, int sock, char username[USERNAME_SIZE], char* public_key)
+{
+    client->sock = sock;
+    client->thread_id = thread_id;
+    strcpy(client->username, username);
+    strcpy(client->public_key, public_key);
+}
+
+void cleanClient(struct Client* client)
+{
+    setClient(client, NULL, -1, "", "");
 }

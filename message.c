@@ -2,10 +2,10 @@
 
 void setMessage( struct Message* message, int kind, char msg[BUFFER_SIZE], char from[USERNAME_SIZE], char to[USERNAME_SIZE])
 {
-    message->kind = kind;
-    strcpy(message->message, msg);
-    strcpy(message->from, from);
-    strcpy(message->to, to);
+    strncpy(message->message, msg, BUFFER_SIZE);
+    strncpy(message->from, from, USERNAME_SIZE);
+    strncpy(message->to, to, USERNAME_SIZE);
+    message->kind = kind; 
 }
 
 void showMessages(struct QueueMessage* messages)
@@ -74,4 +74,20 @@ int isEmptyMessages(struct QueueMessage* messages)
 void cleanMessage(struct Message* message)
 {  
     setMessage(message, 0, "", "", "");
+}
+
+void packMessage(struct Message* message, char* buffer)
+{
+    memcpy(buffer, message->from, USERNAME_SIZE);
+    memcpy(buffer + USERNAME_SIZE, message->to, USERNAME_SIZE);
+    memcpy(buffer + USERNAME_SIZE*2, message->message, BUFFER_SIZE);
+    memcpy(buffer + USERNAME_SIZE*2 + BUFFER_SIZE, &message->kind, sizeof(int));
+}
+
+void unpackMessage(char* buffer, struct Message* message)
+{
+    memcpy(message->from, buffer, USERNAME_SIZE);
+    memcpy(message->to, buffer + USERNAME_SIZE, USERNAME_SIZE);
+    memcpy(message->message, buffer + USERNAME_SIZE*2, BUFFER_SIZE);
+    memcpy(&message->kind, buffer + USERNAME_SIZE*2 + BUFFER_SIZE, sizeof(int));
 }

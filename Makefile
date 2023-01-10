@@ -1,5 +1,5 @@
 client: client.c libmessage.a
-	gcc client.c -o client -L. -lmessage
+	gcc client.c -o client -L. -lmessage -lssl -lcrypto
 	
 server: server.c libclientlib.a libmessage.a
 	gcc server.c -o server -L. -lclientlib -lmessage
@@ -21,3 +21,9 @@ message.o:	message.h message.c
 
 message: message.h message.c
 	gcc message.c -o message
+
+test: test.c
+	gcc test.c -o test -lssl -lcrypto
+
+clean: 
+	rm client server clientlib.o libclientlib.a libmessage.a message.o test
