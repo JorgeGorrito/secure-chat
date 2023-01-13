@@ -14,6 +14,7 @@
 struct Client
 {
     pthread_t* thread_id;
+    pthread_mutex_t m_rec_msg;
     char public_key[KEY_SIZE];
     int sock;
     char username[USERNAME_SIZE];

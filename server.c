@@ -55,21 +55,25 @@ int createSocket(int *port, int type)
 
 void spreadMessage(struct Message* message)
 {
-    struct NodoClient* aux = clients.head;
+    struct NodoClient* temp = clients.head;
     char bufferMessage[sizeof(struct Message)] = {};
     packMessage(message, bufferMessage);
-    while(aux)
+    while(temp)
     {
-        send(aux->client.sock, bufferMessage, sizeof(struct Message), 0);
-        aux = aux->next;
+        pthread_mutex_lock(&temp->client.m_rec_msg);
+        send(temp->client.sock, bufferMessage, sizeof(struct Message), 0);
+        pthread_mutex_unlock(&temp->client.m_rec_msg);
+        temp = temp->next;
     }
 }
 
-void sendMessage(struct Message* message, int sock)
+void sendMessage(struct Message* message, struct Client* user)
 {
     char bufferMessage[sizeof(struct Message)] = {};
     packMessage(message, bufferMessage);
-    send(sock, bufferMessage, sizeof(struct Message), 0);
+    pthread_mutex_lock(&user->m_rec_msg);
+    send(user->sock, bufferMessage, sizeof(struct Message), 0);
+    pthread_mutex_unlock(&user->m_rec_msg);
 }
 
 void* service(void* args)
@@ -120,9 +124,10 @@ void* service(void* args)
                 }
                 case PRIVATE_MESSAGE:
                 {
-                    int sock = vectFindSock(&clients, message.to);
+                    struct Client user = {};
+                    vectGetClient(&clients, message.to, &user);
                     strcpy(message.from, client.username);
-                    sendMessage(&message, sock);
+                    sendMessage(&message, &user);
                     break;
                 } 
                 case ONLINE_MESSAGE:
@@ -132,7 +137,9 @@ void* service(void* args)
                     strncpy(message.message, users, n_bytes);
                     strcpy(message.from, "Server");
                     packMessage(&message, bufferMessage);
+                    pthread_mutex_lock(&client.m_rec_msg);
                     send(client.sock, bufferMessage, sizeof(struct Message), 0);
+                    pthread_mutex_unlock(&client.m_rec_msg);
                     free(users);
                     break;
                 }      
@@ -142,7 +149,9 @@ void* service(void* args)
                     vectGetClient(&clients, message.to, &temp);
                     setMessage(&message, PKEY_MESSAGE, temp.public_key, "", "");
                     packMessage(&message, bufferMessage);
+                    pthread_mutex_lock(&client.m_rec_msg);
                     send(client.sock, bufferMessage, sizeof(struct Message), 0);
+                    pthread_mutex_unlock(&client.m_rec_msg);
                     break;
                 }
                 default:
