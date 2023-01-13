@@ -21,7 +21,7 @@ int main()
     BUF_MEM *buf = NULL;
 
     BN_set_word(bn, RSA_F4);
-    RSA_generate_key_ex(rsa, 1024, bn, NULL);
+    RSA_generate_key_ex(rsa, 5120, bn, NULL);
 
     PEM_write_bio_RSAPublicKey(bio, rsa);
 
@@ -39,10 +39,11 @@ int main()
     unsigned char mensajeCifrado[RSA_size(rsa)];
     char mensajeDescifrado[RSA_size(rsa)];
 
-    strcpy(mensaje, "Mi nombre es Jorge");
+    strcpy(mensaje, "Loremur. Fusce egesque hddsfda fames ac turpis egestasd. Morbi maximus massa ut erat blandit venenatis. Suspendisse justo ligula, eleifend convallis mauris eget, bibendum semper nulla. Nulla sit amet ligula a ligula pretium scelerisque et vel nulla. Maecenas placerat interdum dictum. Proin quis sapien eget quam fringilla faucibus. In faucibus fermentum neque sed imperdiet. Nam turpis mauris, porttitor et suscipit at, venenatis vel enim. Suspendisse porttitor vitae nibh et euismod. Phasellus tempor posuere odio, a maximus augue. Aenean ultrices justo et eros vulputate porta et at mi.emper amet");
     printf("Mensaje: %s\n", mensaje);
+    printf("strlen: %d\nsizeof: %d\n", (int)strlen(mensaje), sizeof(mensaje));
 
-    if (RSA_public_encrypt(strlen(mensaje)+1, mensaje, mensajeCifrado, rsa, RSA_PKCS1_OAEP_PADDING) == -1)
+    if (RSA_public_encrypt(strlen(mensaje), mensaje, mensajeCifrado, rsa, RSA_PKCS1_OAEP_PADDING) == -1)
     {
         printf("Error al cifrar\n");
         exit(1);   
@@ -51,6 +52,7 @@ int main()
     printf("Mensaje cifrado:\n");
     hexdump(mensajeCifrado, RSA_size(rsa));
 
+    return 0;
     if(RSA_private_decrypt(RSA_size(rsa), mensajeCifrado, mensajeDescifrado, rsa, RSA_PKCS1_OAEP_PADDING) == 0)
         printf("Algo salió mal al descifrar\n");
     else

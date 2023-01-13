@@ -102,10 +102,52 @@ void setClient(struct Client* client, pthread_t* thread_id, int sock, char usern
     client->sock = sock;
     client->thread_id = thread_id;
     strncpy(client->username, username, USERNAME_SIZE);
-    strncpy(client->public_key, public_key, RSA_SIZE);
+    strncpy(client->public_key, public_key, KEY_SIZE);
 }
 
 void cleanClient(struct Client* client)
 {
     setClient(client, NULL, 0, "", "");
+}
+
+int vectGetUsername(struct Clients* clients, char** usernames)
+{
+    struct NodoClient* temp = clients->head;
+    int number_bytes = 0;
+    while(temp)
+    {
+        number_bytes += strlen(temp->client.username)+1;
+        temp = temp->next;   
+    }
+
+    *usernames = (char*) malloc(number_bytes);
+    temp = clients->head;
+
+    while(temp)
+    {
+        strcat(*usernames, temp->client.username);
+        strcat(*usernames, ",");
+        temp = temp->next;
+    }
+
+    return number_bytes;
+}
+
+int vectGetClient(struct Clients* clients, char username[USERNAME_SIZE], struct Client* client)
+{
+    struct NodoClient* temp = clients->head;
+    int number_bytes = 0;
+
+    while(temp)
+    {
+        if(!strcmp(temp->client.username, username))
+        {
+            setClient(client, temp->client.thread_id, temp->client.sock, temp->client.username, temp->client.public_key);   
+            number_bytes = sizeof(struct Client);
+            break;
+        }
+        temp = temp->next;
+    }
+
+    return number_bytes;
 }

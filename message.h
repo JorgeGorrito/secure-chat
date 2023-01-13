@@ -9,6 +9,7 @@
 #define DISCONNECTION_MESSAGE 4
 #define ECHO_MESSAGE 5
 #define PKEY_MESSAGE 6
+#define ONLINE_MESSAGE 7
 
 struct __attribute__((packed)) Message
 {

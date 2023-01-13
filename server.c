@@ -65,9 +65,8 @@ void spreadMessage(struct Message* message)
     }
 }
 
-void sendMessage(struct Message* message)
+void sendMessage(struct Message* message, int sock)
 {
-    int sock = vectFindSock(&clients, message->to);
     char bufferMessage[sizeof(struct Message)] = {};
     packMessage(message, bufferMessage);
     send(sock, bufferMessage, sizeof(struct Message), 0);
@@ -78,24 +77,26 @@ void* service(void* args)
     struct Client client = {};
     memcpy(&client, (struct Client*)args, sizeof(struct Client));
     struct Message message = {0, "", "", ""};
+    char bufferMessage[sizeof(struct Message)] = {};
     int bytes_received = 0;
 
     while(TRUE)
     {
         cleanMessage(&message);
-        bytes_received = recv(client.sock, &message, sizeof(struct Message), 0);
-        
+        bytes_received = recv(client.sock, bufferMessage, sizeof(struct Message), 0);
+        unpackMessage(bufferMessage, &message);
         /*Checking error in received message*/
         if(bytes_received == 0)
         {
             cleanMessage(&message);
             strcpy(message.from, client.username);
             char buffer[BUFFER_SIZE];
-            sprintf(buffer, "The user %s has been disconnected", client.username);
+            sprintf(buffer, "The user %s has disconnected", client.username);
             setMessage(&message, SPREAD_MESSAGE, buffer, "Server", "");
+            //POR HACER: Corregir la funcion vectDropClient
             if(vectDropClient(&clients, client.sock) == client.sock)
             {
-                printf("\nThe user %s was disconnected.\n", client.username);
+                printf("\nThe user %s has disconnected.\n", client.username);
                 printf("user online:");
                 vectShow(&clients);
             }
@@ -104,24 +105,49 @@ void* service(void* args)
         }
         else if(bytes_received == -1)
         {
+            printf("Se recibio mal el mensaje y se ignoro\n");
             continue;
         }
-
-        strcpy(message.from, client.username);
-        switch (message.kind)
+        else
         {
-            case SPREAD_MESSAGE:
+            strcpy(message.from, client.username);
+            switch (message.kind)
             {
-                spreadMessage(&message);
-                break;
+                case SPREAD_MESSAGE:
+                {
+                    spreadMessage(&message);
+                    break;
+                }
+                case PRIVATE_MESSAGE:
+                {
+                    int sock = vectFindSock(&clients, message.to);
+                    strcpy(message.from, client.username);
+                    sendMessage(&message, sock);
+                    break;
+                } 
+                case ONLINE_MESSAGE:
+                {
+                    char* users = NULL;
+                    int n_bytes = vectGetUsername(&clients, &users);
+                    strncpy(message.message, users, n_bytes);
+                    strcpy(message.from, "Server");
+                    packMessage(&message, bufferMessage);
+                    send(client.sock, bufferMessage, sizeof(struct Message), 0);
+                    free(users);
+                    break;
+                }      
+                case PKEY_MESSAGE:
+                {
+                    struct Client temp = {NULL, "", 0, ""};
+                    vectGetClient(&clients, message.to, &temp);
+                    setMessage(&message, PKEY_MESSAGE, temp.public_key, "", "");
+                    packMessage(&message, bufferMessage);
+                    send(client.sock, bufferMessage, sizeof(struct Message), 0);
+                    break;
+                }
+                default:
+                    break;
             }
-            case PRIVATE_MESSAGE:
-            {
-                sendMessage(&message);
-                break;
-            }       
-            default:
-                break;
         }
     }
 }
@@ -176,7 +202,7 @@ int main(int argc, char *argv[])
             close(service_socket);
         }
 
-        if (vectExist(&clients, message.from))
+        if (!strcmp(message.from, "Server") || !strcmp(message.from, "server") || vectExist(&clients, message.from))
         {
             char msg[BUFFER_SIZE];
             printf("Username %s has already been registered\n", message.from);
@@ -192,7 +218,7 @@ int main(int argc, char *argv[])
         vectInsert(&clients, &client);
 
         cleanMessage(&message);
-        sprintf(message.message, "The user %s is online.\n", client.username);
+        sprintf(message.message, "The user %s is online.", client.username);
         setMessage(&message, SPREAD_MESSAGE, message.message, "Server", "");
         spreadMessage(&message);
         

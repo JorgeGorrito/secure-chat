@@ -14,7 +14,7 @@
 struct Client
 {
     pthread_t* thread_id;
-    char public_key[RSA_SIZE];
+    char public_key[KEY_SIZE];
     int sock;
     char username[USERNAME_SIZE];
 };
@@ -36,6 +36,8 @@ int vectExist(struct Clients* clients, char username[USERNAME_SIZE]);
 int vectFindSock(struct Clients* clients, char username[USERNAME_SIZE]);
 int vectInsert(struct Clients* clients, struct Client* client);
 int vectDropClient(struct Clients* clients, int sock);
+int vectGetClient(struct Clients* clients, char username[USERNAME_SIZE], struct Client* client);
+int vectGetUsername(struct Clients* clients, char** usernames);
 void vectShow(struct Clients* clients);
 void setClient(struct Client* client, pthread_t* thread_id, int sock, char username[USERNAME_SIZE], char* public_key);
 void cleanClient(struct Client* client);
