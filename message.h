@@ -1,3 +1,9 @@
+/*
+    AUTHOR:        Jorge Abella
+    GITHUB:        JorgeGorrito
+    ROL:           Student
+    ESTABLISHMENT: Universidad de los llanos
+*/
 #include <stdlib.h>
 #include <string.h>
 #include "chat_config.h"

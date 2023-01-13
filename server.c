@@ -1,3 +1,9 @@
+/*
+    AUTHOR:        Jorge Abella
+    GITHUB:        JorgeGorrito
+    ROL:           Student
+    ESTABLISHMENT: Universidad de los llanos
+*/
 //Library
 //Standard Library
 #include<stdio.h>
